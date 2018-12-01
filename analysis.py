@@ -80,14 +80,12 @@ def find_weak_values(states, counts, epsilon):
 
 if __name__ == '__main__':
     """Test of code. Runs on locally stored csv files"""
-
-
     yn = input('Treat as pure state? Y/N: ')
     treat_pure = False
     if yn.capitalize()[0] == 'Y':
         treat_pure = True
 
-    datafile = input('Filename: ')
+    datafile = input('Filepath: ')
     epsilon = input('Epsilon for this data: ')
 
     # reading the first column as a string to keep leading zeros
