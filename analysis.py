@@ -7,38 +7,31 @@ bypassing the csv stuff
 """
 import pandas as pd
 import numpy as np
+from utils import *
 
 # Constructing basis state labels
 qb1 = ['0', '1']
 
-def basis_prod(basis1, basis2):
-    """
-    Takes two lists of strings (i.e. computational
-    bases), computes their tensor product with
-    operation concatenation.
-
-    Given an n qubit basis and an m qubit basis,
-    returns the n+m qubit basis.
-    """
-    l = len(basis1)*len(basis2)
-    out = [None for i in range(l)]
-    i = 0
-    for v1 in basis1:
-        for v2 in basis2:
-            out[i] = v1 + v2
-            i = i + 1
-    return out
-
+# Creating 2, 4, and 5 qubit computational bases
 qb2 = basis_prod(qb1, qb1)
 qb4 = basis_prod(qb2, qb2)
 qb5 = basis_prod(qb4, qb1)
 
-def find_weak_values(states, counts, epsilon):
-    nan16 = np.empty(16)
-    nan16.fill(np.nan)
 
-    imwvs = dict(zip(qb4, nan16))
-    rewvs = dict(zip(qb4, nan16))
+def find_weak_values(states, counts, epsilon):
+    """
+    Determines weak values from quantum computation results.
+
+    INPUT
+    states: List of computational 5-qubit basis states i.e. '10101'
+    counts: The number of results corresponding to each state
+    epsilon: A small number controlling the interaction strength
+    OUTPUT
+    numpy array containing the complex weak values
+    """
+
+    imwvs = dict(zip(qb4, narray(16)))
+    rewvs = dict(zip(qb4, narray(16)))
 
     n = np.sum(counts)
     
@@ -72,8 +65,10 @@ def find_weak_values(states, counts, epsilon):
 
     for q in qb4:
         prob4eps = np.float(counts4[q])/n
-        imagWvs[q] = (1 - 2 * prob4eps / prob4[q]) / (2 * epsilon)
-        
+        if prov4[q] != 0:
+            imagWvs[q] = (1 - 2 * prob4eps / prob4[q]) / (2 * epsilon)
+        else: # Weak values are allowed to be singular
+            pass # I already initialized them to nan
         re0 = (2 * counts40[q] - 1) / (2 * epsilon)
         re1 = (1 - 2 * counts41[q]) / (2 * epsilon)
         print('Difference in real values from 0
@@ -84,6 +79,8 @@ def find_weak_values(states, counts, epsilon):
     return reWvs + 1j*imagWvs
 
 if __name__ == '__main__':
+    """Test of code. Runs on locally stored csv files"""
+
 
     yn = input('Treat as pure state? Y/N: ')
     treat_pure = False
