@@ -45,54 +45,64 @@ class ExtendedQuantumCircuit(QuantumCircuit):
         self.crx(-theta/2, ctl3, tgt)
         self.ccx(ctl1, ctl2, ctl3)
         self.ccrx(theta/2, ctl2, ctl3, tgt)
+
+
+def make_computer():
+    qr = QuantumRegister(5)
+    c = ClassicalRegister(5)
+    qc = ExtendedQuantumCircuit(qr, c)
+    return [qr, c, qc]
         
 
-qr = QuantumRegister(5) # we need 5 qbits
-c = ClassicalRegister(5)
-qc = ExtendedQuantumCircuit(qr, c)
-
-epsilon = 0.001
-theta = -2*epsilon
-
-# Building bell state
-qc.h(qr[0])
-qc.cx(qr[0], qr[1])
-qc.h(qr[2])
-qc.cx(qr[2], qr[3])
-
-# Building the circuit
-qc.rx(-theta, qr[3])
-qc.crx(theta, qr[0], qr[3])
-qc.crx(-theta, qr[0], qr[2])
-qc.ccrx(theta, qr[0], qr[1], qr[2])
-qc.ccrx(-theta, qr[0], qr[1], qr[3])
-qc.cch(qr[0], qr[1], qr[2])
-qc.cccrx(2*theta, qr[0], qr[1], qr[2], qr[3])
-qc.cch(qr[0], qr[1], qr[2])
+def start_bell():
+    # Building bell state
+    qc.h(qr[0])
+    qc.cx(qr[0], qr[1])
+    qc.h(qr[2])
+    qc.cx(qr[2], qr[3])
+    
 
 
-# Measure
-qc.measure(qr, c)
-
-# Optimizing if possible
-qc.optimize_gates()
+def mixed_analysis(epsilon, qr, c, qc)
+    theta = -2*epsilon
 
 
-# print available backends
-# print("IBMQ backends: ", IBMQ.backends())
+    # Building the circuit
+    qc.rx(-theta, qr[3])
+    qc.crx(theta, qr[0], qr[3])
+    qc.crx(-theta, qr[0], qr[2])
+    qc.ccrx(theta, qr[0], qr[1], qr[2])
+    qc.ccrx(-theta, qr[0], qr[1], qr[3])
+    qc.cch(qr[0], qr[1], qr[2])
+    qc.cccrx(2*theta, qr[0], qr[1], qr[2], qr[3])
+    qc.cch(qr[0], qr[1], qr[2])
 
-if simulate:
-    backend = IBMQ.get_backend('ibmq_qasm_simulator')
-    job = execute(qc, backend)
-    result = job.result()
 
-    print(result)
-    print(result.get_counts())
+def pure_analysis(state, epsilon, qr, c, qc)
+    theta = -2*epsilon
+    
+    qc.rx(-theta, qr[3])
+    qc.hd(qr[4])
+    qc.ry(-theta, qr[4])
 
-else:
-    backend_ibmq = IBMQ.get_backend('ibmqx4')
-    job_ibmq = execute(qc, backend_ibmq)
-    result_ibmq = job_ibmq.result()
 
-    print("real execution results: ", result_ibmq)
-    print(result_ibmq.get_counts(qc))
+def finish_and_run(qr, c, qc):
+    # Measure
+    qc.measure(qr, c)
+    # Optimizing if possible
+    qc.optimize_gates()
+    if simulate:
+        backend = IBMQ.get_backend('ibmq_qasm_simulator')
+        job = execute(qc, backend)
+        result = job.result()
+
+        print("simulated results: {}".format(result))
+        print(result.get_counts())
+
+    else:
+        backend_ibmq = IBMQ.get_backend('ibmqx4')
+        job_ibmq = execute(qc, backend_ibmq)
+        result_ibmq = job_ibmq.result()
+
+        print("real execution results: {}".format(result_ibmq))
+        print(result_ibmq.get_counts(qc))
