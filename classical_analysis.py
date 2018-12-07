@@ -102,7 +102,7 @@ def find_weak_values(data, epsilon): #pylint:ignore=too-many-branches
 
 
 def detect_entanglement(data, epsilon, pure, tolerance):
-    isProduct = False
+    isEntangled = True
     if pure:
         diags = {'0000': 0, '0101': 0, '1010': 0,
                 '1111': 0}
@@ -113,7 +113,7 @@ def detect_entanglement(data, epsilon, pure, tolerance):
         print(diags)
         if diags['0000']*diags['1111'] == 0 and diags['1010']*diags['0101'] == 0:
             print('Product state! ad-bc = 0')
-            isProduct = True
+            isEntangled = False
         else: # Now need to use weak values
             imwvs, rewvs = find_weak_values(data, epsilon)
             b2 = '0001'
@@ -123,10 +123,10 @@ def detect_entanglement(data, epsilon, pure, tolerance):
             print('Difference in weak values: {}, {}'.format(reDiff, imDiff))
             if reDiff < tolerance and imDiff < tolerance:
                 print('Product state! a/b = c/d')
-                isProduct = True
+                isEntangled = False
     else: # TODO: implement this part
         pass
-    return isProduct
+    return isEntangled
 
 
 if __name__ == '__main__':
@@ -138,11 +138,11 @@ if __name__ == '__main__':
     # reading the first column as a string to keep leading zeros
     plusData = pd.read_csv(datafile, dtype = {'c[5]':str, 'n':int})
 
-    isProduct = detect_entanglement(plusData, eps, True, eps)
-    if isProduct:
-        print('PRODUCT')
-    else:
+    isEntangled = detect_entanglement(plusData, eps, True, eps)
+    if isEntangled:
         print('ENTANGLED')
+    else:
+        print('UNENTANGLED')
 
 
 

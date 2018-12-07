@@ -74,22 +74,24 @@ def finish_and_run(qr, c, qc, simulate=True):
     return result.get_counts()
 
 
-def mixed_analysis(state1, state1, epsilon, simulate=True):
+def mixed_analysis(state1, state2, epsilon, simulate=True):
     theta = -2*epsilon
 
     qr = QuantumRegister(5)
     c = ClassicalRegister(5)
     qc = ExtendedQuantumCircuit(qr, c)
 
-    if state1 = 'bell':
+    if state1 == 'bell':
         bell_state(qc, qr[0], qr[1])
-    elif state1 = 'plusplus':
-        qc.h(qr[0], qr[1])
+    elif state1 == 'plusplus':
+        qc.h(qr[0])
+        qc.h(qr[1])
 
-    if state2 = 'bell':
+    if state2 == 'bell':
         bell_state(qc, qr[2], qr[3])
-    elif state1 = 'plusplus':
-        qc.h(qr[0], qr[1])
+    elif state1 == 'plusplus':
+        qc.h(qr[2])
+        qc.h(qr[3])
 
     # Building the circuit
     qc.rx(-theta, qr[3])
@@ -104,20 +106,22 @@ def mixed_analysis(state1, state1, epsilon, simulate=True):
     return finish_and_run(qr, c, qc, simulate)
 
 
-def pure_analysis(state, epsilon, qr, c, qc, simulate):
-    theta = -2*epsilon
-
-    if state2 = 'bell':
-        bell_state(qc, qr[2], qr[3])
-    elif state1 = 'plusplus':
-        qc.h(qr[0], qr[1])
+def pure_analysis(state, epsilon, simulate=True):
+    theta = 2*epsilon # so rotations are e^-i*epsilon
 
     qr = QuantumRegister(5)
     c = ClassicalRegister(5)
     qc = ExtendedQuantumCircuit(qr, c)
 
-    qc.rx(-theta, qr[3])
-    qc.hd(qr[4])
-    qc.ry(-theta, qr[4])
+    if state == 'bell':
+        bell_state(qc, qr[1], qr[2])
+        bell_state(qc, qr[2], qr[3])
+    elif state == 'plusplus':
+        for i in range(4):
+            qc.h(qr[i])
 
-    return finish_and_run(qr, c, simulate)
+    qc.rx(theta, qr[3])
+    qc.h(qr[4])
+    qc.ry(theta, qr[4])
+
+    return finish_and_run(qr, c, qc, simulate)
