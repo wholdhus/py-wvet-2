@@ -1,2 +1,3 @@
 ibm_creds.json
 *.csv
+__pycache__
