@@ -9,6 +9,10 @@ import pandas as pd
 import numpy as np
 from utils import basis_prod, narray
 
+# TODO: less sloppy
+import warnings
+warnings.filterwarnings('error', category=RuntimeWarning)
+
 #pylint:disable=invalid-name
 
 # Constructing basis state labels
@@ -55,9 +59,6 @@ def find_weak_values(data, epsilon): #pylint:ignore=too-many-branches
         else:
             print('WARNING: {}th qubit is not a qubit!'.format(i))
 
-    print('{} counts starting with 0'.format(counts1))
-    print('{} counts starting with 1'.format(counts2))
-
     for q in QB4:
         for i, s in enumerate(data['c[5]']):
             if s[-4:] == q: # only looking at first 4 QB
@@ -88,17 +89,21 @@ def find_weak_values(data, epsilon): #pylint:ignore=too-many-branches
             imwvs[q] = (counts4[q] / counts4pre[q] - 1) / (2 * epsilon)
         else: # Weak values are allowed to be singular
             pass # I already initialized them to nan
-        # re0 = (0.5 - counts40[q]/(counts4pre[q])) / epsilon
-        # re1 = (counts41[q]/(counts4pre[q]) - 0.5) / epsilon
-        re0 = (counts40[q]/counts4pre[q] - 0.5)/(counts0 - 0.5)
-        re1 = (counts41[q]/counts4pre[q] - 0.5)/(counts1 - 0.5)
-        print(
-            'Difference in real values for state {} is {}'.format(
-                q, re0-re1))
-        print('Difference in counts is {}'.format(
-            counts41[q] - counts40[q]))
-        rewvs[q] = (re0+re1)/2
-    return imwvs, rewvs
+        try:
+            re0 = (counts40[q]/counts4pre[q] - 0.5)/(counts0 - 0.5)
+            re1 = (counts41[q]/counts4pre[q] - 0.5)/(counts1 - 0.5)
+            rewvs[q] = (re0 + re1) / 2
+        except Warning:
+            if counts4pre[q] == 0: # what usually makes trouble
+                if counts41[q] == 0 and counts40[q] ==0:
+                    re0 = (1 - 0.5)/(counts0 - 0.5)
+                    re1 = (1 - 0.5)/(counts1 - 0.5)
+                    rewvs[q] = (re0 + re1) / 2
+                else:
+                    rewvs[q] = np.nan
+            else:
+                print('WARNING: unexpected runtime error woah!')
+    return rewvs, imwvs
 
 
 def detect_entanglement(data, epsilon, pure, tolerance):
@@ -115,7 +120,7 @@ def detect_entanglement(data, epsilon, pure, tolerance):
             print('Product state! ad-bc = 0')
             isEntangled = False
         else: # Now need to use weak values
-            imwvs, rewvs = find_weak_values(data, epsilon)
+            rewvs, imwvs = find_weak_values(data, epsilon)
             b2 = '0001'
             b4 = '0010'
             reDiff = np.abs(rewvs[b2] - rewvs[b4])

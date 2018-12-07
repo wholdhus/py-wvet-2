@@ -1,6 +1,6 @@
 import json
+import time
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit import execute, IBMQ
 import qiskit as qk
 
 with open('ibm_creds.json') as json_file:
@@ -8,7 +8,7 @@ with open('ibm_creds.json') as json_file:
     QX_TOKEN = IBMDict['qx_token']
     QX_URL = IBMDict['qx_url']
 
-IBMQ.enable_account(QX_TOKEN, QX_URL)
+qk.IBMQ.enable_account(QX_TOKEN, QX_URL)
 
 class ExtendedQuantumCircuit(QuantumCircuit):
 
@@ -63,11 +63,21 @@ def finish_and_run(qr, c, qc, simulate=True):
     # Optimizing if possible
     qc.optimize_gates()
     if simulate:
-        backend = IBMQ.get_backend('ibmq_qasm_simulator')
+        backend = qk.IBMQ.get_backend('ibmq_qasm_simulator')
     else:
-        backend= IBMQ.get_backend('ibmqx4')
+        backend= qk.IBMQ.get_backend('ibmqx4')
+    # job = qk.execute(qc, backend)
+    qobj = qk.compile(qc, backend, shots=8192)
+    job = backend.run(qobj)
+    start_time = time.time()
 
-    job = execute(qc, backend)
+    job_status = job.status()
+    while job_status.name != 'DONE':
+        print(f'Status @ {time.time()-start_time:0.0f} s: {job_status.name},'
+              f' est. queue position: {job.queue_position()}')
+        time.sleep(10)
+        job_status = job.status()
+
     result = job.result()
     # print('Results: {}'.format(result))
     # print(result.get_counts())
@@ -114,7 +124,7 @@ def pure_analysis(state, epsilon, simulate=True):
     qc = ExtendedQuantumCircuit(qr, c)
 
     if state == 'bell':
-        bell_state(qc, qr[1], qr[2])
+        bell_state(qc, qr[0], qr[1])
         bell_state(qc, qr[2], qr[3])
     elif state == 'plusplus':
         for i in range(4):
