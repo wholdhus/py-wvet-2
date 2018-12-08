@@ -9,10 +9,6 @@ import pandas as pd
 import numpy as np
 from utils import basis_prod, narray
 
-# TODO: less sloppy
-import warnings
-warnings.filterwarnings('error', category=RuntimeWarning)
-
 #pylint:disable=invalid-name
 
 # Constructing basis state labels
@@ -70,12 +66,6 @@ def find_weak_values(data, epsilon): #pylint:ignore=too-many-branches
                     counts41[q] = counts41[q] + data['n'][i]
                 else:
                     print('WARNING: state must start with 0 or 1!')
-    for q in QB4:
-        if counts41[q] + counts40[q] != counts4[q]:
-            print('Woah: different number of counts than the number of counts')
-            print(counts41[q])
-            print(counts42[q])
-            print(counts4[q])
 
     counts4pre = dict(zip(QB4, np.zeros(16)))
     for q1 in QB2:
@@ -87,23 +77,23 @@ def find_weak_values(data, epsilon): #pylint:ignore=too-many-branches
     for q in QB4:
         if counts4pre[q] != 0:
             imwvs[q] = (counts4[q] / counts4pre[q] - 1) / (2 * epsilon)
-        else: # Weak values are allowed to be singular
-            pass # I already initialized them to nan
-        try:
+
             re0 = (counts40[q]/counts4pre[q] - 0.5)/(counts0 - 0.5)
             re1 = (counts41[q]/counts4pre[q] - 0.5)/(counts1 - 0.5)
             rewvs[q] = (re0 + re1) / 2
-        except Warning:
-            if counts4pre[q] == 0: # what usually makes trouble
-                if counts41[q] == 0 and counts40[q] ==0:
-                    re0 = (1 - 0.5)/(counts0 - 0.5)
-                    re1 = (1 - 0.5)/(counts1 - 0.5)
-                    rewvs[q] = (re0 + re1) / 2
-                else:
-                    rewvs[q] = np.nan
-            else:
-                print('WARNING: unexpected runtime error woah!')
-    return rewvs, imwvs
+        else: # handling singular cases
+            print('No predicted counts for {}'.format(q))
+            if counts4[q] == 0:
+                print('Also no real counts, so interpolating!')
+                imwvs[q] = -1/(2*epsilon)
+
+                re0 = (1 - 0.5)/(counts0 - 0.5)
+                re1 = (1 - 0.5)/(counts1 - 0.5)
+                rewvs[q] = (re0 + re1) / 2
+    wvs = pd.DataFrame({'state': [s for s in rewvs],
+        'rewv': [rewvs[s] for s in rewvs],
+        'imwv': [imwvs[s] for s in imwvs]})
+    return rewvs, imwvs, wvs
 
 
 def detect_entanglement(data, epsilon, pure, tolerance):
@@ -120,13 +110,16 @@ def detect_entanglement(data, epsilon, pure, tolerance):
             print('Product state! ad-bc = 0')
             isEntangled = False
         else: # Now need to use weak values
-            rewvs, imwvs = find_weak_values(data, epsilon)
-            b2 = '0001'
-            b4 = '0010'
-            reDiff = np.abs(rewvs[b2] - rewvs[b4])
-            imDiff = np.abs(imwvs[b2] - imwvs[b4])
-            print('Difference in weak values: {}, {}'.format(reDiff, imDiff))
-            if reDiff < tolerance and imDiff < tolerance:
+            rewvs, imwvs, wvs = find_weak_values(data, epsilon)
+            b2 = '0001' # unit vector '2' in paper
+            b4 = '0011' # unit vector '4' in paper
+            print('Weak values for k=2:')
+            print('{} + i {}'.format(rewvs[b2], imwvs[b2]))
+            print('Weak values for k=4:')
+            print('{} + i {}'.format(rewvs[b4], imwvs[b4]))
+            diff = rewvs[b4] + 1j * imwvs[b4] - rewvs[b2] - 1j * imwvs[b2];
+            print('Difference in weak values: {}'.format(diff))
+            if np.abs(diff) < tolerance:
                 print('Product state! a/b = c/d')
                 isEntangled = False
     else: # TODO: implement this part
