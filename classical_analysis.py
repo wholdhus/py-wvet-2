@@ -1,9 +1,6 @@
 """
 Data analysis to conduct state tomography from
 quantum data csv files
-
-TODO: make this get the data directly from runs,
-bypassing the csv stuff
 """
 import pandas as pd
 import numpy as np
@@ -50,10 +47,8 @@ def find_weak_values(data, epsilon): #pylint:ignore=too-many-branches
                 counts2[q] = counts2[q] + data['n'][i]
         if s[0] == '0':
             counts0 = counts0 + data['n'][i]
-        elif s[0] == '1':
-            counts1 = counts1 + data['n'][i]
         else:
-            print('WARNING: {}th qubit is not a qubit!'.format(i))
+            counts1 = counts1 + data['n'][i]
 
     for q in QB4:
         for i, s in enumerate(data['c[5]']):
@@ -62,17 +57,19 @@ def find_weak_values(data, epsilon): #pylint:ignore=too-many-branches
                 if s[0] == '0':
                     # could also use q for this TODO: sanity check
                     counts40[q] = counts40[q] + data['n'][i]
-                elif s[0] == '1':
-                    counts41[q] = counts41[q] + data['n'][i]
                 else:
-                    print('WARNING: state must start with 0 or 1!')
+                    counts41[q] = counts41[q] + data['n'][i]
 
     counts4pre = dict(zip(QB4, np.zeros(16)))
+    precounts = 0
     for q1 in QB2:
         for q2 in QB2:
             state = q1 + q2
             prob = (counts2[q1] / n)*(counts2[q2] / n)
             counts4pre[state] = n * prob
+            precounts = precounts + n * prob
+
+    print('Total of precounts is {}'.format(precounts))
 
     for q in QB4:
         if counts4pre[q] != 0:
@@ -84,7 +81,7 @@ def find_weak_values(data, epsilon): #pylint:ignore=too-many-branches
         else: # handling singular cases
             print('No predicted counts for {}'.format(q))
             if counts4[q] == 0:
-                print('Also no real counts, so interpolating!')
+                print('Also no real counts, so guessing 0/0 = 1')
                 imwvs[q] = -1/(2*epsilon)
 
                 re0 = (1 - 0.5)/(counts0 - 0.5)
