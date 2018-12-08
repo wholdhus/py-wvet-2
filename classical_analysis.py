@@ -102,7 +102,6 @@ def detect_entanglement(data, epsilon, pure, tolerance):
             for d in diags:
                 if s[-4:] == d:
                     diags[d] = diags[d] + data['n'][i]
-        print(diags)
         if diags['0000']*diags['1111'] == 0 and diags['1010']*diags['0101'] == 0:
             print('Product state! ad-bc = 0')
             isEntangled = False
@@ -120,6 +119,7 @@ def detect_entanglement(data, epsilon, pure, tolerance):
                 print('Product state! a/b = c/d')
                 isEntangled = False
     else: # TODO: implement this part
+        print('Woops! I have trouble with mixed states right now!')
         pass
     return isEntangled
 

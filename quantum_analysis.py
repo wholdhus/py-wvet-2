@@ -57,6 +57,21 @@ def bell_state(qc, qr1, qr2):
     qc.cx(qr1, qr2)
 
 
+def make_product_state(qc, state, bits):
+    # state should have same length as bits
+    for i, s in enumerate(state):
+        if s == '+':
+            qc.h(bits[i])
+        elif s == '1':
+            qc.x(bits[i])
+        elif s == '-':
+            qc.x(bits[i])
+            qc.h(bits[i])
+        else:
+            print('Got a 0')
+            pass # already 0
+
+
 def finish_and_run(qr, c, qc, simulate=True):
     # Measure
     qc.measure(qr, c)
@@ -75,7 +90,7 @@ def finish_and_run(qr, c, qc, simulate=True):
     while job_status.name != 'DONE':
         print(f'Status @ {time.time()-start_time:0.0f} s: {job_status.name},'
               f' est. queue position: {job.queue_position()}')
-        time.sleep(10)
+        time.sleep(2)
         job_status = job.status()
 
     result = job.result()
@@ -124,11 +139,15 @@ def pure_analysis(state, epsilon, simulate=True):
     qc = ExtendedQuantumCircuit(qr, c)
 
     if state == 'bell':
+        print('Making bell state')
         bell_state(qc, qr[0], qr[1])
         bell_state(qc, qr[2], qr[3])
-    elif state == 'plusplus':
-        for i in range(4):
-            qc.h(qr[i])
+    elif len(state) == 2:
+        print('Making product state')
+        make_product_state(qc, state, [qr[0], qr[1]])
+        make_product_state(qc, state, [qr[2], qr[3]])
+    else:
+        print('Unrecognized state. Using |0000>')
 
     qc.rx(theta, qr[3])
     qc.h(qr[4])

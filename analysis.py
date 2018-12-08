@@ -5,7 +5,7 @@ from quantum_analysis import pure_analysis
 simulate = True
 
 epsilon = float(input('Epsilon: '))
-state = input('State (bell, plusplus, zerozero): ')
+state = input('State (bell or 11, 00, 10, +-, etc.): ')
 sim = input('If you want to run for real, type rfr: ')
 if sim == 'rfr':
     simulate = False
