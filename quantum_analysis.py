@@ -48,7 +48,7 @@ class ExtendedQuantumCircuit(QuantumCircuit):
         self.ccx(ctl1, ctl2, ctl3)
         self.crx(-theta/2, ctl3, tgt)
         self.ccx(ctl1, ctl2, ctl3)
-        self.ccrx(theta/2, ctl2, ctl3, tgt)
+        self.ccrx(theta/2, ctl1, ctl2, tgt)
 
 
 def bell_state(qc, qr1, qr2):
@@ -72,7 +72,7 @@ def make_product_state(qc, state, bits):
             pass # already 0
 
 
-def finish_and_run(qr, c, qc, simulate=True):
+def finish_and_run(qr, c, qc, simulate=True, wait=2):
     # Measure
     qc.measure(qr, c)
     # Optimizing if possible
@@ -82,7 +82,7 @@ def finish_and_run(qr, c, qc, simulate=True):
     else:
         backend= qk.IBMQ.get_backend('ibmqx4')
     # job = qk.execute(qc, backend)
-    qobj = qk.compile(qc, backend, shots=8192)
+    qobj = qk.compile(qc, backend, shots=2048)
     job = backend.run(qobj)
     start_time = time.time()
 
@@ -90,7 +90,7 @@ def finish_and_run(qr, c, qc, simulate=True):
     while job_status.name != 'DONE':
         print(f'Status @ {time.time()-start_time:0.0f} s: {job_status.name},'
               f' est. queue position: {job.queue_position()}')
-        time.sleep(2)
+        time.sleep(wait)
         job_status = job.status()
 
     result = job.result()
@@ -99,7 +99,8 @@ def finish_and_run(qr, c, qc, simulate=True):
     return result.get_counts()
 
 
-def mixed_analysis(state1, state2, epsilon, simulate=True):
+def mixed_analysis(state1, state2, epsilon, simulate=True,
+        wait=10):
     theta = -2*epsilon
 
     qr = QuantumRegister(5)
@@ -108,16 +109,12 @@ def mixed_analysis(state1, state2, epsilon, simulate=True):
 
     if state1 == 'bell':
         bell_state(qc, qr[0], qr[1])
-    elif state1 == 'plusplus':
-        qc.h(qr[0])
-        qc.h(qr[1])
-
+    elif len(state1) == 2:
+        make_product_state(qc, state1, [qr[0], qr[1]])
     if state2 == 'bell':
         bell_state(qc, qr[2], qr[3])
-    elif state1 == 'plusplus':
-        qc.h(qr[2])
-        qc.h(qr[3])
-
+    elif len(state2) == 2:
+        make_product_state(qc, state2, [qr[2], qr[3]])
     # Building the circuit
     qc.rx(-theta, qr[3])
     qc.crx(theta, qr[0], qr[3])
@@ -128,10 +125,13 @@ def mixed_analysis(state1, state2, epsilon, simulate=True):
     qc.cccrx(2*theta, qr[0], qr[1], qr[2], qr[3])
     qc.cch(qr[0], qr[1], qr[2])
 
-    return finish_and_run(qr, c, qc, simulate)
+    # Ancilla operations
+    qc.h(qr[4])
+    qc.ry(-theta, qr[4])
+    return finish_and_run(qr, c, qc, simulate, wait=wait)
 
 
-def pure_analysis(state, epsilon, simulate=True):
+def pure_analysis(state, epsilon, simulate=True, wait=2):
     theta = 2*epsilon # so rotations are e^-i*epsilon
 
     qr = QuantumRegister(5)
@@ -148,9 +148,10 @@ def pure_analysis(state, epsilon, simulate=True):
         make_product_state(qc, state, [qr[2], qr[3]])
     else:
         print('Unrecognized state. Using |0000>')
-
+    # Circuit bit
     qc.rx(theta, qr[3])
+    # Ancilla bit
     qc.h(qr[4])
     qc.ry(theta, qr[4])
 
-    return finish_and_run(qr, c, qc, simulate)
+    return finish_and_run(qr, c, qc, simulate=simulate, wait=wait)

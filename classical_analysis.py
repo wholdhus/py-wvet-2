@@ -61,33 +61,39 @@ def find_weak_values(data, epsilon): #pylint:ignore=too-many-branches
                     counts41[q] = counts41[q] + data['n'][i]
 
     counts4pre = dict(zip(QB4, np.zeros(16)))
-    precounts = 0
     for q1 in QB2:
         for q2 in QB2:
             state = q1 + q2
             prob = (counts2[q1] / n)*(counts2[q2] / n)
             counts4pre[state] = n * prob
-            precounts = precounts + n * prob
-
-    print('Total of precounts is {}'.format(precounts))
+    pc = [counts4pre[s] for s in counts4pre]
+    print('Average pre count is {}'.format(np.mean(pc)))
+    print('Std dev pre count is {}'.format(np.std(pc)))
+    # print('Total of precounts is {}'.format(precounts))
 
     for q in QB4:
         if counts4pre[q] != 0:
             imwvs[q] = (counts4[q] / counts4pre[q] - 1) / (2 * epsilon)
 
-            re0 = (counts40[q]/counts4pre[q] - 0.5)/(counts0 - 0.5)
-            re1 = (counts41[q]/counts4pre[q] - 0.5)/(counts1 - 0.5)
+            # re0 = (counts40[q]/counts4pre[q] - 0.5)/(counts0 - 0.5)
+            # re1 = (counts41[q]/counts4pre[q] - 0.5)/(counts1 - 0.5)
+            re0 = (0.5 - counts40[q]/counts4pre[q])/epsilon
+            re1 = (counts41[q]/counts4pre[q] - 0.5)/epsilon
+            print('re0 = {}'.format(re0))
+            print('re1 = {}'.format(re1))
             rewvs[q] = (re0 + re1) / 2
         else: # handling singular cases
-            print('No predicted counts for {}'.format(q))
-            if counts4[q] == 0:
-                print('Also no real counts, so guessing 0/0 = 1')
-                imwvs[q] = -1/(2*epsilon)
+            pass
+            # print('No predicted counts for {}'.format(q))
+            # if counts4[q] == 0:
+                # print('Also no real counts, so guessing 0/0 = 1')
+                # imwvs[q] = -1/(2*epsilon)
 
-                re0 = (1 - 0.5)/(counts0 - 0.5)
-                re1 = (1 - 0.5)/(counts1 - 0.5)
-                rewvs[q] = (re0 + re1) / 2
+                # re0 = (1 - 0.5)/(counts0 - 0.5)
+                # re1 = (1 - 0.5)/(counts1 - 0.5)
+                # rewvs[q] = (re0 + re1) / 2
     wvs = pd.DataFrame({'state': [s for s in rewvs],
+        'counts': [counts4[s] for s in rewvs],
         'rewv': [rewvs[s] for s in rewvs],
         'imwv': [imwvs[s] for s in imwvs]})
     return rewvs, imwvs, wvs
@@ -95,6 +101,7 @@ def find_weak_values(data, epsilon): #pylint:ignore=too-many-branches
 
 def detect_entanglement(data, epsilon, pure, tolerance):
     isEntangled = True
+    rewvs, imwvs, wvs = find_weak_values(data, epsilon)
     if pure:
         diags = {'0000': 0, '0101': 0, '1010': 0,
                 '1111': 0}
@@ -106,7 +113,6 @@ def detect_entanglement(data, epsilon, pure, tolerance):
             print('Product state! ad-bc = 0')
             isEntangled = False
         else: # Now need to use weak values
-            rewvs, imwvs, wvs = find_weak_values(data, epsilon)
             b2 = '0001' # unit vector '2' in paper
             b4 = '0011' # unit vector '4' in paper
             print('Weak values for k=2:')
@@ -120,8 +126,10 @@ def detect_entanglement(data, epsilon, pure, tolerance):
                 isEntangled = False
     else: # TODO: implement this part
         print('Woops! I have trouble with mixed states right now!')
-        pass
-    return isEntangled
+        print('Just guessing that the state is entangled I guess')
+        # Actually this part is pretty hard. Should I do it? Seems like
+        # I'll need to use some symbolic stuff.
+    return isEntangled, wvs
 
 
 if __name__ == '__main__':
